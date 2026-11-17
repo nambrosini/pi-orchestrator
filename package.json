@@ -7,9 +7,9 @@
   "scripts": {
     "test": "npx tsx --test test/*.test.ts"
   },
-  "dependencies": {
-    "@earendil-works/pi-coding-agent": "^1.5.2",
-    "typebox": "^1.4.7"
+  "peerDependencies": {
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   },
   "devDependencies": {
     "tsx": "^4.0.0",
