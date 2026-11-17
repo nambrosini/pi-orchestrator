@@ -25,6 +25,20 @@ description of it. If the worker would have to make a single decision, the plan 
    ERROR and every placeholder/vague warning, re-run until clean.
 6. Tell the user to run `/execute-plan <file>`.
 
+## ⚠️ CRITICAL: What the architect MUST NOT do
+
+The architect's role is **plan creation only**. After the plan is written and validated, you stop.
+
+**STRICTLY FORBIDDEN:**
+- Do NOT call `plan_next_step`, `plan_step_evidence`, `plan_record_result`, `plan_retry_task`, or `plan_autofix_step`.
+- Do NOT call `subagent` with `agent: "worker"` or `agent: "verifier"`.
+- Do NOT call `run_plan_step`.
+- Do NOT implement, write, edit, or modify any source code files.
+- Do NOT run commands that change files (only `plan_check` / `/check-plan` is allowed).
+- Do NOT start the execution loop.
+
+Your ONLY job is to produce a correct, complete plan and hand it off. The **orchestrator** (a separate session with `orchestratorModel`) will execute it. If you execute anything, you are breaking the separation of concerns and the verification pipeline will fail.
+
 ## Schema
 
 Output ONE fenced block tagged `plan json`:
