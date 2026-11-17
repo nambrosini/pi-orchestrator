@@ -1,0 +1,124 @@
+{
+  "project": "Move plans to docs/plans/ with NNN-slug naming",
+  "context": "Node.js project with ESM, TypeScript. Plans are .json files or .md with ```plan json blocks. No code changes needed — only file relocation and documentation updates.",
+  "phases": [
+    {
+      "id": "create-directories",
+      "description": "Create the docs/plans/ directory structure",
+      "steps": [
+        {
+          "id": "create-docs-plans",
+          "title": "Create docs/plans/ directory",
+          "description": "Create the docs/ and docs/plans/ directories so plan files have a home. This is a no-op file change — mkdir -p handles it.",
+          "changes": [
+            {
+              "file": "docs/.gitkeep",
+              "action": "write",
+              "content": "",
+              "description": "Placeholder to ensure git tracks the docs/ directory"
+            },
+            {
+              "file": "docs/plans/.gitkeep",
+              "action": "write",
+              "content": "",
+              "description": "Placeholder to ensure git tracks the docs/plans/ directory"
+            }
+          ],
+          "commands": ["test -d docs && test -d docs/plans"],
+          "acceptance": ["docs/ directory exists", "docs/plans/ directory exists"]
+        }
+      ]
+    },
+    {
+      "id": "move-plan-file",
+      "description": "Move INSTALL_PLAN.json to docs/plans/001-install.json",
+      "steps": [
+        {
+          "id": "move-install-plan",
+          "title": "Move and rename INSTALL_PLAN.json",
+          "description": "Move the existing INSTALL_PLAN.json from the project root to docs/plans/001-install.json, applying the new NNN-slug naming convention (001 for the first plan).",
+          "changes": [
+            {
+              "file": "INSTALL_PLAN.json",
+              "action": "delete_file"
+            },
+            {
+              "file": "docs/plans/001-install.json",
+              "action": "write",
+              "content": "{\n  \"project\": \"Make pi-orchestrator installable via 'pi install'\",\n  \"context\": \"Node.js project with ESM, following Pi extension conventions\",\n  \"phases\": [\n    {\n      \"id\": \"setup\",\n      \"description\": \"Ensure proper package.json structure for Pi extension installation\",\n      \"steps\": [\n        {\n          \"id\": \"validate-package-json\",\n          \"title\": \"Validate and update package.json for Pi installation\",\n          \"description\": \"Ensure the package.json has all required fields and Pi extension configuration for proper installation\",\n          \"changes\": [\n            {\n              \"file\": \"package.json\",\n              \"action\": \"replace\",\n              \"find\": \"{\\n  \\\"name\\\": \\\"pi-orchestrator\\\",\\n  \\\"version\\\": \\\"0.1.0\\\",\\n  \\\"description\\\": \\\"Architect–Orchestrator–Worker plan execution for pi\\\",\\n  \\\"type\\\": \\\"module\\\",\\n  \\\"keywords\\\": [\\\"pi-package\\\"],\\n  \\\"pi\\\": {\\n    \\\"extensions\\\": [\\\"./src/index.ts\\\"],\\n    \\\"skills\\\": [\\\"./skills\\\"]\\n  }\\n}\",\n              \"content\": \"{\\n  \\\"name\\\": \\\"pi-orchestrator\\\",\\n  \\\"version\\\": \\\"0.1.0\\\",\\n  \\\"description\\\": \\\"Architect–Orchestrator–Worker plan execution for pi\\\",\\n  \\\"type\\\": \\\"module\\\",\\n  \\\"keywords\\\": [\\\"pi-package\\\"],\\n  \\\"pi\\\": {\\n    \\\"extensions\\\": [\\\"./src/index.ts\\\"],\\n    \\\"skills\\\": [\\\"./skills\\\"]\\n  },\\n  \\\"main\\\": \\\"src/index.ts\\\",\\n  \\\"exports\\\": {\\n    \\\"./package.json\\\": \\\"./package.json\\\",\\n    \\\"./src/*\\\": \\\"./src/*.ts\\\"\\n  },\\n  \\\"files\\\": [\\n    \\\"src/**/*\\\",\\n    \\\"skills/**/*\\\",\\n    \\\"agents/**/*\\\",\\n    \\\"README.md\\\",\\n    \\\"package.json\\\"\\n  ]\\n}\"\n            }\n          ],\n          \"commands\": [\"node -e \\\"require('./package.json'); console.log('package.json is valid JSON')\\\"\"],\n          \"acceptance\": [\n            \"package.json has proper Pi extension configuration\",\n            \"package.json includes main and exports fields\",\n            \"package.json includes files field with all necessary components\"\n          ]\n        }\n      ]\n    },\n    {\n      \"id\": \"docs\",\n      \"description\": \"Update documentation for installation instructions\",\n      \"steps\": [\n        {\n          \"id\": \"update-readme\",\n          \"title\": \"Update README with installation instructions\",\n          \"description\": \"Add clear installation instructions to the README.md file for users to install this extension\",\n          \"changes\": [\n            {\n              \"file\": \"README.md\",\n              \"action\": \"insert_after\",\n              \"find\": \"# pi-orchestrator\\n\\nArchitect → Orchestrator → Worker workflow for pi.\",\n              \"content\": \"\\n## Installation\\n\\nTo install this Pi extension:\\n\\n```\\npi install /path/to/pi-orchestrator      # local path\\npi install git:github.com/you/pi-orchestrator\\n```\\n\\nThen run `/reload` in your Pi session to activate the extension.\\n\\nFor the `subagents` backend, also install:\\n\\n```\\npi install npm:pi-subagents\\n```\\n\\nAnd set the `worker` model (e.g. in `settings.json` → `subagents.agentOverrides.worker.model`).\\n\\nThe `agents/worker.md` and `agents/verifier.md` files can be copied to `~/.pi/agent/agents/` if needed.\"\n            }\n          ],\n          \"acceptance\": [\n            \"README.md includes installation instructions\",\n            \"Installation instructions are clear and complete\"\n          ]\n        }\n      ]\n    },\n    {\n      \"id\": \"validation\",\n      \"description\": \"Validate the installation setup\",\n      \"steps\": [\n        {\n          \"id\": \"verify-structure\",\n          \"title\": \"Verify project structure for Pi installation\",\n          \"description\": \"Ensure all required files and directories exist in proper locations for Pi extension installation\",\n          \"changes\": [],\n          \"commands\": [\n            \"ls -la src/ | grep -E 'index\\\\.ts|config\\\\.ts|plan\\\\.ts'\",\n            \"ls -la skills/ | wc -l\",\n            \"ls -la agents/ | wc -l\"\n          ],\n          \"acceptance\": [\n            \"All required source files exist in src/\",\n            \"Skills directory exists and contains content\",\n            \"Agents directory exists with required files\"\n          ]\n        }\n      ]\n    }\n  ]\n}\n",
+              "description": "Full content of the original INSTALL_PLAN.json, now under the new path with the 001- prefix"
+            }
+          ],
+          "commands": ["test -f docs/plans/001-install.json && test ! -f INSTALL_PLAN.json"],
+          "acceptance": ["docs/plans/001-install.json exists with correct content", "INSTALL_PLAN.json no longer exists at project root"]
+        }
+      ]
+    },
+    {
+      "id": "update-skill",
+      "description": "Update the plan-format skill to reference the new plan location and naming convention",
+      "steps": [
+        {
+          "id": "update-skill-location",
+          "title": "Update SKILL.md plan location and naming instructions",
+          "description": "Update the skill's Workflow step 5 to reference `docs/plans/NNN-slug.json` instead of `PLAN.md` or `plan.json`. Add a Plan naming convention section explaining the `NNN-slug.json` scheme (zero-padded 3-digit sequence + descriptive slug).",
+          "changes": [
+            {
+              "file": "skills/plan-format/SKILL.md",
+              "action": "replace",
+              "find": "5. **Save it** to a file (e.g. `PLAN.md` or `plan.json`) and **call the `plan_check` tool on it**\n   (or `/check-plan <file>`). It dry-applies every change in order against the real files. Fix every\n   ERROR and every placeholder/vague warning, re-run until clean.",
+              "content": "5. **Save it** to `docs/plans/NNN-slug.json` (or `docs/plans/NNN-slug.md`) and **call the `plan_check` tool on it**\n   (or `/check-plan <file>`). It dry-applies every change in order against the real files. Fix every\n   ERROR and every placeholder/vague warning, re-run until clean."
+            },
+            {
+              "file": "skills/plan-format/SKILL.md",
+              "action": "insert_after",
+              "find": "## Schema",
+              "content": "## Plan naming convention\n\nPlan files follow the scheme `NNN-slug.json` (or `NNN-slug.md`):\n\n- `NNN` is a zero-padded 3-digit sequence (`001`, `002`, …) that determines sort order.\n- `slug` is a short, lowercase, hyphen-separated description (e.g. `001-install`, `002-refactor`).\n- Insert new plans between existing ones by using a letter suffix (e.g. `001b-fix` goes between `001` and `002`).\n- All plans live in `docs/plans/`.\n\nExample: `docs/plans/001-install.json`, `docs/plans/002-refactor.json`."
+            }
+          ],
+          "acceptance": ["SKILL.md references `docs/plans/NNN-slug.json` in the Workflow section", "SKILL.md contains a 'Plan naming convention' section explaining the NNN-slug scheme"]
+        }
+      ]
+    },
+    {
+      "id": "update-readme",
+      "description": "Update README.md with new plan paths and naming convention",
+      "steps": [
+        {
+          "id": "update-readme-usage",
+          "title": "Update README usage examples with new plan paths",
+          "description": "Update the Usage section to show plan paths under `docs/plans/` with the NNN-slug naming convention.",
+          "changes": [
+            {
+              "file": "README.md",
+              "action": "replace",
+              "find": "```\n/check-plan plan.json\n/execute-plan plan.json [--phase id] [--step id] [--dry-run] [--resume] [--force]\n```",
+              "content": "```\n/check-plan docs/plans/NNN-slug.json\n/execute-plan docs/plans/NNN-slug.json [--phase id] [--step id] [--dry-run] [--resume] [--force]\n```"
+            }
+          ],
+          "acceptance": ["README.md Usage section shows `docs/plans/NNN-slug.json` paths"]
+        }
+      ]
+    },
+    {
+      "id": "update-agents",
+      "description": "Update AGENTS.md with new plan location in project structure and references",
+      "steps": [
+        {
+          "id": "update-agents-structure",
+          "title": "Update AGENTS.md project structure",
+          "description": "Update the Project Structure section to show `docs/plans/` instead of `INSTALL_PLAN.json` at the root.",
+          "changes": [
+            {
+              "file": "AGENTS.md",
+              "action": "replace",
+              "find": "├── README.md                     # User-facing documentation\n└── INSTALL_PLAN.json             # Installation plan",
+              "content": "├── README.md                     # User-facing documentation\n├── docs/                         # Documentation\n│   └── plans/                    # Plan files (NNN-slug.json)\n│       └── 001-install.json      # Installation plan"
+            }
+          ],
+          "acceptance": ["AGENTS.md project structure shows `docs/plans/` with `001-install.json`"]
+        }
+      ]
+    }
+  ]
+}

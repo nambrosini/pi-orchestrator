@@ -60,8 +60,8 @@ Then `/reload`. For the `subagents` backend, also `pi install npm:pi-subagents` 
 ## Usage
 
 ```
-/check-plan plan.json
-/execute-plan plan.json [--phase id] [--step id] [--dry-run] [--resume] [--force]
+/check-plan docs/plans/NNN-slug.json
+/execute-plan docs/plans/NNN-slug.json [--phase id] [--step id] [--dry-run] [--resume] [--force]
 ```
 - `/check-plan` (and the `plan_check` tool) simulates every change in order against the current files: errors for anchors (`find`) that are missing or not unique and for edits to files that will not exist; warnings for placeholders (`...`, `TODO`), vague wording and missing acceptance criteria.
 - A fresh full `/execute-plan` run refuses to start while `/check-plan` has errors (`--force` overrides; skipped with `--resume`/`--phase`/`--step`).

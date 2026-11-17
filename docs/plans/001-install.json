@@ -1,0 +1,76 @@
+{
+  "project": "Make pi-orchestrator installable via 'pi install'",
+  "context": "Node.js project with ESM, following Pi extension conventions",
+  "phases": [
+    {
+      "id": "setup",
+      "description": "Ensure proper package.json structure for Pi extension installation",
+      "steps": [
+        {
+          "id": "validate-package-json",
+          "title": "Validate and update package.json for Pi installation",
+          "description": "Ensure the package.json has all required fields and Pi extension configuration for proper installation",
+          "changes": [
+            {
+              "file": "package.json",
+              "action": "replace",
+              "find": "{\n  \"name\": \"pi-orchestrator\",\n  \"version\": \"0.1.0\",\n  \"description\": \"Architect–Orchestrator–Worker plan execution for pi\",\n  \"type\": \"module\",\n  \"keywords\": [\"pi-package\"],\n  \"pi\": {\n    \"extensions\": [\"./src/index.ts\"],\n    \"skills\": [\"./skills\"]\n  }\n}",
+              "content": "{\n  \"name\": \"pi-orchestrator\",\n  \"version\": \"0.1.0\",\n  \"description\": \"Architect–Orchestrator–Worker plan execution for pi\",\n  \"type\": \"module\",\n  \"keywords\": [\"pi-package\"],\n  \"pi\": {\n    \"extensions\": [\"./src/index.ts\"],\n    \"skills\": [\"./skills\"]\n  },\n  \"main\": \"src/index.ts\",\n  \"exports\": {\n    \"./package.json\": \"./package.json\",\n    \"./src/*\": \"./src/*.ts\"\n  },\n  \"files\": [\n    \"src/**/*\",\n    \"skills/**/*\",\n    \"agents/**/*\",\n    \"README.md\",\n    \"package.json\"\n  ]\n}"
+            }
+          ],
+          "commands": ["node -e \"require('./package.json'); console.log('package.json is valid JSON')\""],
+          "acceptance": [
+            "package.json has proper Pi extension configuration",
+            "package.json includes main and exports fields",
+            "package.json includes files field with all necessary components"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "docs",
+      "description": "Update documentation for installation instructions",
+      "steps": [
+        {
+          "id": "update-readme",
+          "title": "Update README with installation instructions",
+          "description": "Add clear installation instructions to the README.md file for users to install this extension",
+          "changes": [
+            {
+              "file": "README.md",
+              "action": "insert_after",
+              "find": "# pi-orchestrator\n\nArchitect → Orchestrator → Worker workflow for pi.",
+              "content": "\n## Installation\n\nTo install this Pi extension:\n\n```\npi install /path/to/pi-orchestrator      # local path\npi install git:github.com/you/pi-orchestrator\n```\n\nThen run `/reload` in your Pi session to activate the extension.\n\nFor the `subagents` backend, also install:\n\n```\npi install npm:pi-subagents\n```\n\nAnd set the `worker` model (e.g. in `settings.json` → `subagents.agentOverrides.worker.model`).\n\nThe `agents/worker.md` and `agents/verifier.md` files can be copied to `~/.pi/agent/agents/` if needed."
+            }
+          ],
+          "acceptance": [
+            "README.md includes installation instructions",
+            "Installation instructions are clear and complete"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "validation",
+      "description": "Validate the installation setup",
+      "steps": [
+        {
+          "id": "verify-structure",
+          "title": "Verify project structure for Pi installation",
+          "description": "Ensure all required files and directories exist in proper locations for Pi extension installation",
+          "changes": [],
+          "commands": [
+            "ls -la src/ | grep -E 'index\\.ts|config\\.ts|plan\\.ts'",
+            "ls -la skills/ | wc -l",
+            "ls -la agents/ | wc -l"
+          ],
+          "acceptance": [
+            "All required source files exist in src/",
+            "Skills directory exists and contains content",
+            "Agents directory exists with required files"
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -20,7 +20,7 @@ description of it. If the worker would have to make a single decision, the plan 
 3. **Design the whole feature yourself**: every function, signature, type, import, export, error
    message, constant, test case. Decide all names. Resolve all edge cases now.
 4. **Write the plan** (schema below) with exact `changes` for every file.
-5. **Save it** to a file (e.g. `PLAN.md` or `plan.json`) and **call the `plan_check` tool on it**
+5. **Save it** to `docs/plans/NNN-slug.json` (or `docs/plans/NNN-slug.md`) and **call the `plan_check` tool on it**
    (or `/check-plan <file>`). It dry-applies every change in order against the real files. Fix every
    ERROR and every placeholder/vague warning, re-run until clean.
 6. Tell the user to run `/execute-plan <file>`.
@@ -40,6 +40,16 @@ The architect's role is **plan creation only**. After the plan is written and va
 Your ONLY job is to produce a correct, complete plan and hand it off. The **orchestrator** (a separate session with `orchestratorModel`) will execute it. If you execute anything, you are breaking the separation of concerns and the verification pipeline will fail.
 
 ## Schema
+## Plan naming convention
+
+Plan files follow the scheme `NNN-slug.json` (or `NNN-slug.md`):
+
+- `NNN` is a zero-padded 3-digit sequence (`001`, `002`, …) that determines sort order.
+- `slug` is a short, lowercase, hyphen-separated description (e.g. `001-install`, `002-refactor`).
+- Insert new plans between existing ones by using a letter suffix (e.g. `001b-fix` goes between `001` and `002`).
+- All plans live in `docs/plans/`.
+
+Example: `docs/plans/001-install.json`, `docs/plans/002-refactor.json`.
 
 Output ONE fenced block tagged `plan json`:
 
