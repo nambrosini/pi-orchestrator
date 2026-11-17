@@ -5,13 +5,14 @@
   "type": "module",
   "keywords": ["pi-package"],
   "scripts": {
-    "test": "node --test test/*.test.ts"
+    "test": "npx tsx --test test/*.test.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^1.5.2",
     "typebox": "^1.4.7"
   },
   "devDependencies": {
+    "tsx": "^4.0.0",
     "typescript": "^5.0.0"
   },
   "pi": {
