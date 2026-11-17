@@ -2,6 +2,27 @@
 
 Architect → Orchestrator → Worker workflow for pi.
 
+## Installation
+
+To install this Pi extension:
+
+```
+pi install /path/to/pi-orchestrator      # local path
+pi install git:github.com/you/pi-orchestrator
+```
+
+Then run `/reload` in your Pi session to activate the extension.
+
+For the `subagents` backend, also install:
+
+```
+pi install npm:pi-subagents
+```
+
+And set the `worker` model (e.g. in `settings.json` → `subagents.agentOverrides.worker.model`).
+
+The `agents/worker.md` and `agents/verifier.md` files can be copied to `~/.pi/agent/agents/` if needed.
+
 - **Architect**: your current (large) session. Uses the `plan-format` skill to write a plan (phases → steps → exact `changes`): every file, every anchor, every line of code. It validates the plan with `plan_check` / `/check-plan`.
 - **Orchestrator**: this extension. Dispatches each step to the worker, snapshots the files first, then checks every file against the result the plan predicts (exact planned-vs-actual diff), runs the commands, asks `verifierModel` for a verdict, and loops fix instructions (including the diffs) back up to `maxFixAttempts`.
 - **Worker**: a small local model with limited context, via the `pi-subagents` `worker` agent or a spawned `pi` child. It makes no design decisions: each change is handed to it as a literal `edit` (oldText/newText) or `write` (content) tool call.

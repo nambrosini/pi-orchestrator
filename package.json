@@ -7,5 +7,17 @@
   "pi": {
     "extensions": ["./src/index.ts"],
     "skills": ["./skills"]
-  }
+  },
+  "main": "src/index.ts",
+  "exports": {
+    "./package.json": "./package.json",
+    "./src/*": "./src/*.ts"
+  },
+  "files": [
+    "src/**/*",
+    "skills/**/*",
+    "agents/**/*",
+    "README.md",
+    "package.json"
+  ]
 }
