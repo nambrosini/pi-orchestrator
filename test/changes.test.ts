@@ -81,3 +81,21 @@ test("checkChanges compares planned vs actual", async () => {
   assert.equal(readFileSync(join(d, "src/a.js"), "utf8"), "one\nTWO   \n");
   rmSync(d, { recursive: true, force: true });
 });
+
+test("blank-line-only differences match; autofix makes files exact", async () => {
+  const { autofixFiles } = await import("../src/changes.ts");
+  const d = repo();
+  writeFileSync(join(d, "src/a.xml"), "<a>\n</a>\n");
+  const plan = parsePlan(mk([{ id: "s", title: "t", description: "x", changes: [{ file: "src/a.xml", action: "insert_after", find: "<a>", content: "<b/>\n<c/>" }] }]));
+  const step = plan.phases[0].steps[0];
+  const snap = snapshotFiles(step, d);
+  writeFileSync(join(d, "src/a.xml"), "<a>\n<b/>\n\n<c/>\n</a>\n");
+  assert.equal((await checkChanges(step, d, snap))[0].status, "match");
+  assert.equal((await checkChanges(step, d, snap, { strictBlankLines: true }))[0].status, "mismatch");
+  writeFileSync(join(d, "src/a.xml"), "<a>\n<b/>\n</a>\n");
+  assert.equal((await checkChanges(step, d, snap))[0].status, "mismatch");
+  assert.equal(autofixFiles(step, d, snap)[0].action, "rewritten to planned content");
+  assert.equal(readFileSync(join(d, "src/a.xml"), "utf8"), "<a>\n<b/>\n<c/>\n</a>\n");
+  assert.equal((await checkChanges(step, d, snap, { strictBlankLines: true }))[0].status, "match");
+  rmSync(d, { recursive: true, force: true });
+});

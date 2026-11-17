@@ -1,6 +1,6 @@
-import { existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import type { Change, Plan, Step } from "./plan.ts";
 import { sh, truncateHeadTail } from "./util.ts";
 
@@ -104,9 +104,11 @@ export function formatIssues(issues: PlanIssue[]): string {
 export interface ChangeCheck { file: string; status: "match" | "mismatch" | "unknown"; detail: string; diff?: string }
 
 const canon = (s: string) => norm(s).split("\n").map((l) => l.trimEnd()).join("\n").replace(/\n+$/, "");
+/** Like canon, but blank-line differences are ignored too (cosmetic). */
+const canonLoose = (s: string) => canon(s).split("\n").filter((l) => l.trim() !== "").join("\n");
 
 /** Compare the files on disk with what the plan says they should be after this step. */
-export async function checkChanges(step: Step, cwd: string, snap: Snapshot | undefined): Promise<ChangeCheck[]> {
+export async function checkChanges(step: Step, cwd: string, snap: Snapshot | undefined, opts: { strictBlankLines?: boolean } = {}): Promise<ChangeCheck[]> {
   if (!step.changes?.length) return [];
   if (!snap) return [{ file: "*", status: "unknown", detail: "no pre-step snapshot; cannot compute expected content" }];
   const out: ChangeCheck[] = [];
@@ -119,6 +121,10 @@ export async function checkChanges(step: Step, cwd: string, snap: Snapshot | und
     }
     if (actual === null) { out.push({ file, status: "mismatch", detail: "file should exist but is missing" }); continue; }
     if (canon(actual) === canon(exp.content)) { out.push({ file, status: "match", detail: "content matches the plan exactly (ignoring trailing whitespace)" }); continue; }
+    if (!opts.strictBlankLines && canonLoose(actual) === canonLoose(exp.content)) {
+      out.push({ file, status: "match", detail: "content matches the plan except for blank lines only (treated as a match; use plan_autofix_step to make it byte-exact)" });
+      continue;
+    }
     out.push({ file, status: "mismatch", detail: "content differs from the planned result", diff: await diffText(exp.content, actual, file) });
   }
   return out;
@@ -145,4 +151,24 @@ export function mismatchInstructions(checks: ChangeCheck[]): string {
   const bad = checks.filter((c) => c.status === "mismatch");
   if (!bad.length) return "";
   return `The files do not match the planned result. Lines starting with "-" are what the plan requires, "+" is what is currently in the file. Make the file match the plan:\n\n${bad.map((c) => `${c.file}: ${c.detail}${c.diff ? `\n${c.diff}` : ""}`).join("\n\n")}`;
+}
+
+/**
+ * Deterministically make files equal to the planned result (no model involved).
+ * Only touches files that currently differ; returns what was done per file.
+ */
+export function autofixFiles(step: Step, cwd: string, snap: Snapshot): { file: string; action: string }[] {
+  const res: { file: string; action: string }[] = [];
+  for (const [file, exp] of Object.entries(expectedFiles(step, snap))) {
+    if ("error" in exp) { res.push({ file, action: `skipped: ${exp.error}` }); continue; }
+    const p = resolve(cwd, file), actual = readOrNull(cwd, file);
+    if (exp.content === null) {
+      if (actual !== null) { rmSync(p, { force: true }); res.push({ file, action: "deleted" }); }
+    } else if (actual === null || actual !== exp.content) {
+      mkdirSync(dirname(p), { recursive: true });
+      writeFileSync(p, exp.content);
+      res.push({ file, action: actual === null ? "created" : "rewritten to planned content" });
+    }
+  }
+  return res;
 }

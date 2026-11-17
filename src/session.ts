@@ -13,6 +13,8 @@ export interface SessionRun {
   aborted?: boolean;
   /** Pre-step file contents, taken the first time a step is handed out. */
   snapshots: Map<string, Snapshot>;
+  /** Fix instructions (planned-vs-actual diffs) from the latest evidence per step. */
+  lastFix: Map<string, string>;
 }
 
 let run: SessionRun | undefined;
@@ -21,7 +23,7 @@ export const getRun = () => run;
 export function startSessionRun(
   plan: Plan, planKey: string, cfg: OrchestratorConfig, opts: RunOptions, doneSteps: Set<string>, prevModel?: unknown,
 ): SessionRun {
-  run = { plan, planKey, cfg, opts, queue: selectSteps(plan, opts), done: new Set(opts.resume ? doneSteps : []), prevModel, snapshots: new Map() };
+  run = { plan, planKey, cfg, opts, queue: selectSteps(plan, opts), done: new Set(opts.resume ? doneSteps : []), prevModel, snapshots: new Map(), lastFix: new Map() };
   return run;
 }
 
@@ -49,6 +51,7 @@ export function nextStep(r: SessionRun | undefined = run) {
     phase: phase.id, step: step.id,
     label: `Phase ${p + 1}/${r.plan.phases.length}, Step ${s + 1}/${phase.steps.length}: ${step.title}`,
     task: composeTask({ plan: r.plan, phase, step }),
+    workerTimeoutMs: r.cfg.workerTimeoutMs,
     commands: step.commands, acceptance: step.acceptance,
   };
 }
@@ -85,3 +88,12 @@ export function finishSessionRun(append: (e: ProgressEntry) => void): { status: 
 }
 
 export { ENTRY_TYPE, passedSteps };
+
+/** The full worker task for a retry: original task + mechanically computed fix section. */
+export function retryTask(phase: string, step: string, extra?: string, r: SessionRun | undefined = run): string {
+  if (!r) throw new Error("No active /execute-plan run.");
+  const st = findStep(phase, step, r);
+  const ph = r.queue.find((q) => q.phase.id === phase && q.step.id === step)!.phase;
+  const fix = [r.lastFix.get(stepKey(phase, step)), extra].filter((x) => x?.trim()).join("\n\n");
+  return composeTask({ plan: r.plan, phase: ph, step: st, fixInstructions: fix || "Re-check the files against the step and fix any differences." });
+}

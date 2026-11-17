@@ -11,6 +11,10 @@ export interface OrchestratorConfig {
   verifyCommandTimeoutMs: number;
   workerTimeoutMs: number;
   workerPromptFile: string;
+  /** Treat blank-line-only differences as mismatches. */
+  strictBlankLines: boolean;
+  /** Let the orchestrator write the planned content itself via plan_autofix_step after failed attempts. */
+  autofix: boolean;
 }
 
 const PKG_ROOT = join(import.meta.dirname ?? __dirname, "..");
@@ -32,8 +36,10 @@ export function loadConfig(cwd: string, sessionModel?: { provider: string; id: s
     workerBackend: merged.workerBackend === "child" ? "child" : "subagents",
     maxFixAttempts: Number.isInteger(merged.maxFixAttempts) && merged.maxFixAttempts > 0 ? merged.maxFixAttempts : 3,
     verifyCommandTimeoutMs: Number(merged.verifyCommandTimeoutMs) > 0 ? Number(merged.verifyCommandTimeoutMs) : 120000,
-    workerTimeoutMs: Number(merged.workerTimeoutMs) > 0 ? Number(merged.workerTimeoutMs) : 30 * 60_000,
+    workerTimeoutMs: Number(merged.workerTimeoutMs) > 0 ? Number(merged.workerTimeoutMs) : 10 * 60_000,
     workerPromptFile: merged.workerPromptFile ?? join(PKG_ROOT, "agents", "worker.md"),
+    strictBlankLines: merged.strictBlankLines === true,
+    autofix: merged.autofix !== false,
   };
   return cfg;
 }

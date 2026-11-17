@@ -8,7 +8,7 @@ export interface CommandResult { command: string; exitCode: number | null; timed
 export interface Evidence { status: string; diff: string; commands: CommandResult[]; checks: ChangeCheck[] }
 
 export async function collectEvidence(step: Step, cwd: string, cfg: OrchestratorConfig, signal?: AbortSignal, snapshot?: Snapshot): Promise<Evidence> {
-  const checks = await checkChanges(step, cwd, snapshot);
+  const checks = await checkChanges(step, cwd, snapshot, { strictBlankLines: cfg.strictBlankLines });
   const status = await gitStatus(cwd);
   const diff = truncateHeadTail(await gitDiff(cwd, step.files));
   const commands: CommandResult[] = [];

@@ -2,11 +2,12 @@ import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { loadConfig, requireModels } from "./config.ts";
 import { loadPlan, type Plan } from "./plan.ts";
-import { checkPlan, formatIssues } from "./changes.ts";
+import { autofixFiles, checkPlan, formatIssues, mismatchInstructions } from "./changes.ts";
 import { collectEvidence, formatEvidence, VERDICT_RULES } from "./verifier.ts";
 import { runPlan, type RunOptions, type RunSummary } from "./orchestrator.ts";
 import { ENTRY_TYPE, passedSteps, planKeyFor, readProgress, unfinishedPlans, type ProgressEntry } from "./state.ts";
-import { ensureSnapshot, findStep, finishSessionRun, getRun, nextStep, recordResult, remaining, startSessionRun } from "./session.ts";
+import { ensureSnapshot, findStep, finishSessionRun, getRun, nextStep, recordResult, remaining, retryTask, startSessionRun } from "./session.ts";
+import { stepKey } from "./state.ts";
 import { buildDriverPrompt } from "./driver-prompt.ts";
 
 function tokenize(s: string): string[] {
@@ -153,10 +154,38 @@ export default function (pi: ExtensionAPI) {
       if (!r) throw new Error("No active /execute-plan run.");
       const step = findStep(p.phase, p.step);
       const ev = await collectEvidence(step, ctx.cwd, r.cfg, signal, ensureSnapshot(p.phase, p.step, ctx.cwd));
+      r.lastFix.set(stepKey(p.phase, p.step), [mismatchInstructions(ev.checks), ...ev.commands.filter((c) => c.exitCode !== 0).map((c) => `Command failed: ${c.command} (exit ${c.exitCode})\n${c.output.slice(-1500)}`)].filter(Boolean).join("\n\n"));
       const mism = ev.checks.filter((c) => c.status === "mismatch").length;
       const failed = ev.commands.filter((c) => c.exitCode !== 0).length;
       const text = `Summary: ${mism} file(s) differ from the plan, ${failed} command(s) failed.\n\n${formatEvidence(ev)}\n\n## Verifier rules\n${VERDICT_RULES}`;
       return { content: [{ type: "text", text }], details: { mismatches: mism, failedCommands: failed } };
+    },
+  });
+
+  pi.registerTool({
+    name: "plan_retry_task",
+    label: "Retry task",
+    description: "For the active /execute-plan run: the complete worker task for a retry (original task + PREVIOUS ATTEMPT FAILED section built from the latest plan_step_evidence). Pass it verbatim to the worker; never write retry tasks yourself.",
+    promptSnippet: "Get the verbatim worker task for a retry of a failed step",
+    parameters: Type.Object({ phase: Type.String(), step: Type.String(), extra: Type.Optional(Type.String({ description: "Extra verifier fix instructions to append" })) }),
+    async execute(_id, p) {
+      return { content: [{ type: "text", text: retryTask(p.phase, p.step, p.extra) }], details: {} };
+    },
+  });
+
+  pi.registerTool({
+    name: "plan_autofix_step",
+    label: "Autofix step",
+    description: "For the active /execute-plan run: deterministically write the PLANNED file content for the step's files that differ from the plan (no model involved, exactly what the plan specifies). Use as escalation when the worker failed or hung twice, or truncated its output. Then call plan_step_evidence again.",
+    promptSnippet: "Mechanically apply the planned content of a step (escalation)",
+    parameters: Type.Object({ phase: Type.String(), step: Type.String() }),
+    async execute(_id, p, _s, _u, ctx) {
+      const r = getRun();
+      if (!r) throw new Error("No active /execute-plan run.");
+      if (!r.cfg.autofix) throw new Error("autofix is disabled (orchestrator.autofix=false).");
+      const res = autofixFiles(findStep(p.phase, p.step), ctx.cwd, ensureSnapshot(p.phase, p.step, ctx.cwd));
+      const text = res.length ? res.map((x) => `${x.file}: ${x.action}`).join("\n") : "Nothing to fix: all files already equal the planned content.";
+      return { content: [{ type: "text", text: `${text}\nNow call plan_step_evidence again.` }], details: { res } };
     },
   });
 
